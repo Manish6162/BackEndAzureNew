@@ -17,9 +17,9 @@ namespace BackEnd.Controllers
         private readonly BlobServiceClient _blobServiceClient;
         private static readonly string[] ProfilePicUrls =
         {
-            "https://blobstoragemanishranu.blob.core.windows.net/profilepiccontainer/407466.jpg",
-            "https://blobstoragemanishranu.blob.core.windows.net/profilepiccontainer/Gorgeous-Flower-wallpaper.jpg",
-            "https://blobstoragemanishranu.blob.core.windows.net/profilepiccontainer/R.jpg"
+            "https://mediastorageasmr.blob.core.windows.net/mediacontainer/default-profile-pic1.jpg",
+            "https://mediastorageasmr.blob.core.windows.net/mediacontainer/default-profile-pic2.jpg",
+            "https://mediastorageasmr.blob.core.windows.net/mediacontainer/default-profile-pic3.jpg"
         };
 
         public UsersController(CosmosDbContext cosmosDbContext, BlobServiceClient blobServiceClient)
