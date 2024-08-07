@@ -61,10 +61,10 @@ namespace BackEnd.Controllers
 
                 var newUser = new User
                 {
-                    Id = Guid.NewGuid().ToString(),
+                    id = Guid.NewGuid().ToString(),
                     Username = GenerateUsername(),
                     ProfilePicUrl = GetRandomProfilePicUrl(),
-                    Ip = Request.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    //Ip = Request.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
                     UserAgent = metadata.UserAgent,
                     BrowserInfo = metadata.BrowserInfo,
                     OperatingSystem = "unknown", // Set default or update as necessary
