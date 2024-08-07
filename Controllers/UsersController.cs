@@ -5,6 +5,7 @@ using Microsoft.Azure.Cosmos;
 using System.Collections;
 using System.Reflection;
 using System.Resources;
+using System.Threading.Tasks;
 using User = BackEnd.Entities.User;
 
 namespace BackEnd.Controllers
@@ -29,7 +30,7 @@ namespace BackEnd.Controllers
         }
 
         [HttpGet("toTestWebApiDeployment")]
-        public IActionResult toTestWebApiDeployment()
+        public IActionResult ToTestWebApiDeployment()
         {
             return Ok();
         }
@@ -39,9 +40,13 @@ namespace BackEnd.Controllers
         {
             try
             {
-                var query = new QueryDefinition("SELECT * FROM c WHERE c.ip = @ip AND c.userAgent = @userAgent")
-                    .WithParameter("@ip", metadata.Ip)
-                    .WithParameter("@userAgent", metadata.UserAgent);
+                if (metadata == null || string.IsNullOrEmpty(metadata.DeviceId))
+                {
+                    return BadRequest("Invalid metadata.");
+                }
+
+                var query = new QueryDefinition("SELECT * FROM c WHERE c.deviceId = @deviceId")
+                    .WithParameter("@deviceId", metadata.DeviceId);
 
                 var iterator = _usersContainer.GetItemQueryIterator<User>(query);
                 if (iterator.HasMoreResults)
@@ -59,10 +64,11 @@ namespace BackEnd.Controllers
                     Id = Guid.NewGuid().ToString(),
                     Username = GenerateUsername(),
                     ProfilePicUrl = GetRandomProfilePicUrl(),
-                    Ip = metadata.Ip,
+                    Ip = Request.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
                     UserAgent = metadata.UserAgent,
                     BrowserInfo = metadata.BrowserInfo,
-                    Location = metadata.Location
+                    OperatingSystem = "unknown", // Set default or update as necessary
+                    DeviceId = metadata.DeviceId
                 };
 
                 await _usersContainer.CreateItemAsync(newUser);
@@ -88,7 +94,7 @@ namespace BackEnd.Controllers
         {
             try
             {
-                string resourceKey = $"BackEnd.Resources.{resourceName}.resources";
+                string resourceKey = $"BackEndAzure.Resources.{resourceName}.resources";
                 var assembly = Assembly.GetExecutingAssembly();
                 using (var stream = assembly.GetManifestResourceStream(resourceKey))
                 {
@@ -102,7 +108,7 @@ namespace BackEnd.Controllers
                     }
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 return string.Empty;
             }
@@ -119,13 +125,5 @@ namespace BackEnd.Controllers
             int index = random.Next(ProfilePicUrls.Length);
             return ProfilePicUrls[index];
         }
-    }
-
-    public class UserMetadata
-    {
-        public string Ip { get; set; } = string.Empty;
-        public string UserAgent { get; set; } = string.Empty;
-        public string BrowserInfo { get; set; } = string.Empty;
-        public string Location { get; set; } = string.Empty;
     }
 }
