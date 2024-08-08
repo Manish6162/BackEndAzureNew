@@ -5,6 +5,7 @@ using Microsoft.Azure.Cosmos;
 using System.Collections;
 using System.Reflection;
 using System.Resources;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using User = BackEnd.Entities.User;
 
@@ -35,18 +36,63 @@ namespace BackEnd.Controllers
             return Ok();
         }
 
-        [HttpPost("checkOrGenerateUser")]
-        public async Task<IActionResult> CheckOrGenerateUser([FromBody] UserMetadata metadata)
+        //[HttpPost("checkOrGenerateUser")]
+        //public async Task<IActionResult> CheckOrGenerateUser([FromBody] UserMetadata metadata)
+        //{
+        //    try
+        //    {
+        //        if (metadata == null || string.IsNullOrEmpty(metadata.DeviceId))
+        //        {
+        //            return BadRequest("Invalid metadata.");
+        //        }
+
+        //        var query = new QueryDefinition("SELECT * FROM c WHERE c.deviceId = @deviceId")
+        //            .WithParameter("@deviceId", metadata.DeviceId);
+
+        //        var iterator = _usersContainer.GetItemQueryIterator<User>(query);
+        //        if (iterator.HasMoreResults)
+        //        {
+        //            var response = await iterator.ReadNextAsync();
+        //            var existingUser = response.FirstOrDefault();
+        //            if (existingUser != null)
+        //            {
+        //                return Ok(existingUser);
+        //            }
+        //        }
+
+        //        var newUser = new User
+        //        {
+        //            id = Guid.NewGuid().ToString(),
+        //            Username = GenerateUsername(),
+        //            ProfilePicUrl = GetRandomProfilePicUrl(),
+        //            //Ip = Request.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        //            UserAgent = metadata.UserAgent,
+        //            BrowserInfo = metadata.BrowserInfo,
+        //            OperatingSystem = "unknown", // Set default or update as necessary
+        //            DeviceId = metadata.DeviceId
+        //        };
+
+        //        await _usersContainer.CreateItemAsync(newUser);
+
+        //        return Ok(newUser);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return StatusCode(500, $"Internal server error: {ex.Message}");
+        //    }
+        //}
+        [HttpPost("checkAndSetUserInfo")]
+        public async Task<IActionResult> checkAndSetUserInfo([FromBody] UserMetadata metadata)
         {
             try
             {
-                if (metadata == null || string.IsNullOrEmpty(metadata.DeviceId))
-                {
-                    return BadRequest("Invalid metadata.");
-                }
+                //if (!IsValidGuid(metadata.DeviceId))
+                //{
+                //    return BadRequest("Invalid GUID format.");
+                //}
 
                 var query = new QueryDefinition("SELECT * FROM c WHERE c.deviceId = @deviceId")
-                    .WithParameter("@deviceId", metadata.DeviceId);
+                    .WithParameter("@deviceId", metadata.DeviceId.ToLower());
 
                 var iterator = _usersContainer.GetItemQueryIterator<User>(query);
                 if (iterator.HasMoreResults)
@@ -63,22 +109,34 @@ namespace BackEnd.Controllers
                 {
                     id = Guid.NewGuid().ToString(),
                     Username = GenerateUsername(),
-                    ProfilePicUrl = GetRandomProfilePicUrl(),
-                    //Ip = Request.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-                    UserAgent = metadata.UserAgent,
-                    BrowserInfo = metadata.BrowserInfo,
-                    OperatingSystem = "unknown", // Set default or update as necessary
-                    DeviceId = metadata.DeviceId
+                    DeviceId = metadata.DeviceId.ToLower(),
+                    //Ip = metadata.Ip,
+                    //UserAgent = metadata.UserAgent,
+                    //BrowserInfo = metadata.BrowserInfo,
+                    //OperatingSystem = metadata.OperatingSystem,
+                    //ScreenResolution = metadata.ScreenResolution,
+                    //Timezone = metadata.Timezone,
+                    //HardwareInfo = metadata.HardwareInfo
                 };
 
                 await _usersContainer.CreateItemAsync(newUser);
-
                 return Ok(newUser);
             }
             catch (Exception ex)
             {
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
+        }
+
+        private bool IsValidGuid(string guid)
+        {
+            if (string.IsNullOrWhiteSpace(guid))
+            {
+                return false;
+            }
+
+            guid = guid.Trim();
+            return Regex.IsMatch(guid, "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", RegexOptions.IgnoreCase);
         }
 
         private string GenerateUsername()
