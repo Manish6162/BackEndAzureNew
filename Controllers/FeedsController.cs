@@ -20,20 +20,33 @@ namespace BackEnd.Controllers
         }
 
         [HttpPost("create")]
-        public async Task<IActionResult> CreateFeedWithBlob([FromForm] IFormFile file, [FromForm] string userId, [FromForm] string profilePicUrl)
+        public async Task<IActionResult> CreateFeedWithBlob([FromForm] IFormFile file, [FromForm] string metadata)
         {
+            if (file == null || file.Length == 0)
+            {
+                return BadRequest("No file uploaded.");
+            }
+
+            // Extract user ID from metadata
+            var metadataParts = metadata.Split(':');
+            if (metadataParts.Length < 2)
+            {
+                return BadRequest("Invalid metadata format.");
+            }
+
+            var userId = metadataParts[1];
+            if (string.IsNullOrEmpty(userId))
+            {
+                return BadRequest("User ID is required.");
+            }
+
             try
             {
-                // Check if the request has a file
-                if (file == null || file.Length == 0)
-                    return BadRequest("No file uploaded.");
-
                 // Create a new feed object
                 var feed = new Feed
                 {
                     FeedId = Guid.NewGuid().ToString(),
                     UserId = userId, // Set the user ID
-                    ProfilePicUrl = profilePicUrl, // Set the profile picture URL
                     CurrentTime = DateTime.UtcNow,
                     Likes = 0,
                     Comments = 0,
@@ -45,6 +58,9 @@ namespace BackEnd.Controllers
 
                 // Get the Blob container client
                 BlobContainerClient container = _blobServiceClient.GetBlobContainerClient(_containerName);
+
+                // Ensure the container exists
+                await container.CreateIfNotExistsAsync();
 
                 // Get the Blob client for the new file
                 BlobClient blob = container.GetBlobClient(fileName);
@@ -70,6 +86,10 @@ namespace BackEnd.Controllers
                 return StatusCode(500, $"An error occurred while creating the feed: {ex.Message}");
             }
         }
+
+
+
+
 
         [HttpGet("all")]
         public async Task<IActionResult> GetAllFeeds()
